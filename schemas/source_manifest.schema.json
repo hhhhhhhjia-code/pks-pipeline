@@ -1,0 +1,154 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.org/pks/schemas/source_manifest.schema.json",
+  "title": "Source Manifest Row",
+  "description": "source_manifest.csv 的单行结构。CSV 中的值均为字符串，加载器必须先按本 schema 的 type 做类型转换再校验（见 validate_schemas.py）。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "source_id",
+    "source_type",
+    "original_filename",
+    "relative_path",
+    "file_extension",
+    "file_size_bytes",
+    "imported_at",
+    "content_hash",
+    "processing_status"
+  ],
+  "properties": {
+    "source_id": {
+      "type": "string",
+      "pattern": "^src_[a-z0-9_]+_[0-9]{8}_[0-9A-HJKMNP-TV-Z]{6}$",
+      "description": "稳定不变的主键。首次入库时分配，此后永不重算，标题改名、路径移动、内容不变都不影响。规则见 SCHEMA_DESIGN.md。"
+    },
+    "source_type": {
+      "type": "string",
+      "description": "Source platform. A free-form slug rather than a closed enum: adding a new source must never require editing this schema. Recommended: apple_notes, feishu, iflytek, chatgpt, wechat, qq, local, other.",
+      "pattern": "^[a-z][a-z0-9_]{1,30}$",
+      "examples": [
+        "apple_notes",
+        "feishu",
+        "iflytek",
+        "local"
+      ]
+    },
+    "title": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 300,
+      "description": "人类可读标题。优先取原始元数据里的标题，取不到才用文件名主干。允许为空。"
+    },
+    "original_filename": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 255,
+      "description": "文件在导出包中的原始名称，含扩展名。用于回溯和人工比对，不参与 ID 生成。"
+    },
+    "relative_path": {
+      "type": "string",
+      "pattern": "^(?!/)(?!.*(^|/)\\.\\.(/|$))(?!.*\\\\).+$",
+      "description": "以项目根目录为基准的 POSIX 相对路径，正斜杠，无前导 ./，禁止 ..。保证整个目录可搬迁。"
+    },
+    "file_extension": {
+      "type": "string",
+      "pattern": "^([a-z0-9]{1,10})?$",
+      "description": "小写、不含点。无扩展名用空串。"
+    },
+    "file_size_bytes": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "字节数。用于完整性核对与异常检测（0 字节需要标记）。"
+    },
+    "created_at": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time",
+      "description": "内容创作时间，来自导出元数据或文件名。取不到必须为 null，不得用文件系统 mtime 顶替。"
+    },
+    "created_at_source": {
+      "type": "string",
+      "enum": [
+        "metadata",
+        "filename",
+        "filesystem",
+        "unknown"
+      ],
+      "default": "unknown",
+      "description": "created_at 的来源，决定这个时间的可信度。filesystem 仅表示该值是 mtime，不等于创作时间。"
+    },
+    "modified_at": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time",
+      "description": "文件系统修改时间。仅用于变更检测，不代表内容创作或最后编辑。"
+    },
+    "imported_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "进入本系统的时间，由导入程序写入，必填。"
+    },
+    "content_hash": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$",
+      "description": "文件字节的 SHA-256。用于去重、完整性校验、内容变更检测。算法前缀内嵌，便于未来换算法。"
+    },
+    "processing_status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "parsing",
+        "parsed",
+        "failed",
+        "skipped_duplicate"
+      ],
+      "description": "该原始文件在解析流水线中的状态。与 knowledge_item.review_status 是两套独立状态机。"
+    },
+    "duplicate_of": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^src_[a-z0-9_]+_[0-9]{8}_[0-9A-HJKMNP-TV-Z]{6}$",
+      "description": "若 content_hash 与既有条目一致，填其 source_id。文件保留不删，仅标记。"
+    },
+    "notes": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 2000,
+      "description": "人工备注：导出异常、编码问题、缺失元数据的原因等。"
+    }
+  },
+  "x-csv": {
+    "encoding": "UTF-8 (with BOM allowed)",
+    "delimiter": ",",
+    "quote": "\"",
+    "header": true,
+    "columns": [
+      "source_id",
+      "source_type",
+      "title",
+      "original_filename",
+      "relative_path",
+      "file_extension",
+      "file_size_bytes",
+      "created_at",
+      "created_at_source",
+      "modified_at",
+      "imported_at",
+      "content_hash",
+      "processing_status",
+      "duplicate_of",
+      "notes"
+    ],
+    "empty_value": "空字符串表示 null；不得写 NULL / N/A / 未知 等占位文本"
+  }
+}

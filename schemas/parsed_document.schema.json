@@ -1,0 +1,697 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.org/pks/schemas/parsed_document.schema.json",
+  "title": "Parsed Document",
+  "description": "原始文件的统一中间表示。只做结构标准化，不改写内容。一份原始文件解析为一个 Parsed Document；附件、对话轮次、转写发言都保留原始顺序。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "document_id",
+    "source_id",
+    "title",
+    "source_type",
+    "content_format",
+    "content",
+    "structure",
+    "extracted_at",
+    "parser",
+    "parsing_status",
+    "schema_version"
+  ],
+  "properties": {
+    "document_id": {
+      "type": "string",
+      "pattern": "^doc_[A-Za-z0-9_]+$",
+      "description": "由 source_id 确定性派生：doc_<source_id 去掉 src_ 前缀>_<序号两位>。同一源文件重解析得到同一 ID，便于幂等覆盖。"
+    },
+    "source_id": {
+      "type": "string",
+      "pattern": "^src_[a-z0-9_]+_[0-9]{8}_[0-9A-HJKMNP-TV-Z]{6}$",
+      "description": "指回 source_manifest 的主键。这是唯一的溯源锚点。"
+    },
+    "title": {
+      "type": "string",
+      "maxLength": 300,
+      "description": "从原文一级标题 / 元数据取；都没有时用文件名主干。不得由模型生造。"
+    },
+    "source_type": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]{1,30}$",
+      "description": "Source platform. A free-form slug rather than a closed enum: adding a new source must never require editing this schema. Recommended: apple_notes, feishu, iflytek, chatgpt, wechat, qq, local, other.",
+      "examples": [
+        "apple_notes",
+        "feishu",
+        "iflytek",
+        "local"
+      ]
+    },
+    "content": {
+      "type": "string",
+      "description": "标准化后的全文文本，按原始顺序拼接，仅做格式转换（如 HTML 去标签），不做摘要、不改措辞。解析失败时为空串。"
+    },
+    "content_format": {
+      "type": "string",
+      "enum": [
+        "markdown",
+        "plain_text",
+        "html",
+        "json",
+        "richtext_json"
+      ],
+      "description": "content 字段的表示格式，不是原始文件的格式。原始格式见 source_manifest.file_extension。"
+    },
+    "language": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$",
+      "description": "BCP-47，如 zh-Hans、en。无法判定时为 null，不猜。"
+    },
+    "original_metadata": {
+      "type": "object",
+      "description": "来源平台的原始元数据原样保留：Apple Notes 的创建/修改时间与文件夹，Feishu 的 token/参会人/时长，ChatGPT 的会话 ID/模型等。键名保持原样，不做归一化。",
+      "additionalProperties": true
+    },
+    "structure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sequence",
+        "blocks"
+      ],
+      "description": "原文的结构化视图。blocks 的顺序即原始顺序，order 必须连续递增。",
+      "properties": {
+        "sequence": {
+          "type": "string",
+          "enum": [
+            "document_order",
+            "chronological",
+            "thread"
+          ],
+          "description": "document_order=笔记/文档；chronological=会议转写/录音；thread=多轮对话。"
+        },
+        "blocks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/block"
+          },
+          "description": "最小结构单元。段落、标题、表格、转写轮次、对话轮次都是一种 block。"
+        },
+        "time_axis": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": false,
+          "description": "有绝对时间的材料（会议、录音）填。无则 null。",
+          "properties": {
+            "start_at": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "date-time"
+            },
+            "end_at": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "date-time"
+            },
+            "duration_ms": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 0
+            }
+          }
+        },
+        "participants": {
+          "type": "array",
+          "description": "出现的说话人/角色。speaker_label 与 block.speaker 对应；真实姓名未知时 resolved_name 为 null。",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "speaker_label"
+            ],
+            "properties": {
+              "speaker_label": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 60
+              },
+              "resolved_name": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "maxLength": 120
+              },
+              "external_id": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "is_owner": {
+                "type": [
+                  "boolean",
+                  "null"
+                ],
+                "description": "是否为账号本人。未知为 null。"
+              }
+            }
+          }
+        }
+      }
+    },
+    "attachments": {
+      "type": "array",
+      "description": "与本文档关联的附件（录音、图片、PDF）。文件本体在 01_Raw_Archive 下，这里只存引用。",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "attachment_id",
+          "filename",
+          "role"
+        ],
+        "properties": {
+          "attachment_id": {
+            "type": "string",
+            "pattern": "^att_[0-9]{3}$"
+          },
+          "filename": {
+            "type": "string",
+            "minLength": 1
+          },
+          "relative_path": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "mime_type": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "size_bytes": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "transcript_audio",
+              "image",
+              "pdf",
+              "document",
+              "link_preview",
+              "other"
+            ]
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "extracted_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "解析执行时间，不是内容时间。"
+    },
+    "parser": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "version",
+        "method"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+        },
+        "method": {
+          "type": "string",
+          "enum": [
+            "rule",
+            "llm",
+            "hybrid",
+            "manual"
+          ]
+        }
+      },
+      "description": "解析器与版本。规则改了版本号必须变，否则无法复现。"
+    },
+    "parsing_status": {
+      "type": "string",
+      "enum": [
+        "success",
+        "partial",
+        "failed"
+      ],
+      "description": "partial = 主内容可用但部分结构丢失；failed = 无可用内容，必须留档并进 02_Processing/Failed。"
+    },
+    "parsing_warnings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "severity"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "pattern": "^[A-Z][A-Z0-9_]{2,40}$"
+          },
+          "message": {
+            "type": "string",
+            "minLength": 1
+          },
+          "severity": {
+            "type": "string",
+            "enum": [
+              "info",
+              "warning",
+              "error"
+            ]
+          },
+          "block_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "description": "结构化告警。凡是猜测、截断、编码替换，都必须在这里记录，不得静默处理。"
+    },
+    "schema_version": {
+      "type": "string",
+      "const": "1.0.0"
+    }
+  },
+  "$defs": {
+    "locator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind"
+      ],
+      "description": "在原文中的定位方式。不同来源用不同粒度：Markdown 用行号，转写用时间戳+块，对话用轮次序号。",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "line_range",
+            "char_range",
+            "block_index",
+            "timestamp",
+            "page",
+            "table_cell"
+          ]
+        },
+        "line_start": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "line_end": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "char_start": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "char_end": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "block_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "timestamp_ms": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "page": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "table_row": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "cell": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "line_range"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "line_start": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "line_start"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "char_range"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "char_start": {
+                "type": "integer"
+              },
+              "char_end": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "char_start",
+              "char_end"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "block_index"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "block_id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "block_id"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "timestamp"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "timestamp_ms": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "timestamp_ms"
+            ]
+          }
+        }
+      ]
+    },
+    "block": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "block_id",
+        "order",
+        "type"
+      ],
+      "properties": {
+        "block_id": {
+          "type": "string",
+          "pattern": "^blk_[0-9]{4}$",
+          "description": "文档内唯一，按顺序编号。knowledge_item 的 source_refs 直接引用它。"
+        },
+        "order": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "从 0 开始连续递增，等于在原文中的出现顺序。"
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "heading",
+            "paragraph",
+            "list_item",
+            "quote",
+            "code",
+            "table",
+            "transcript_turn",
+            "dialogue_turn",
+            "attachment",
+            "image",
+            "link",
+            "separator"
+          ]
+        },
+        "text": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "该块的原文文本。图片/附件块可为 null 或替代文本。"
+        },
+        "heading_level": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1,
+          "maximum": 6
+        },
+        "speaker": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 60,
+          "description": "说话人标签，与 structure.participants[].speaker_label 对应。"
+        },
+        "role": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "user",
+            "assistant",
+            "system",
+            "tool",
+            null
+          ],
+          "description": "对话角色，仅 dialogue_turn 使用。"
+        },
+        "start_ms": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "description": "相对录音开头的起始毫秒。转写块必填。"
+        },
+        "end_ms": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "language": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "attachment_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^att_[0-9]{3}$"
+        },
+        "locator": {
+          "$ref": "#/$defs/locator"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "transcript_turn"
+              }
+            },
+            "required": [
+              "type"
+            ]
+          },
+          "then": {
+            "properties": {
+              "speaker": {
+                "type": "string"
+              },
+              "start_ms": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "speaker",
+              "start_ms"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "dialogue_turn"
+              }
+            },
+            "required": [
+              "type"
+            ]
+          },
+          "then": {
+            "properties": {
+              "role": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "role"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "heading"
+              }
+            },
+            "required": [
+              "type"
+            ]
+          },
+          "then": {
+            "properties": {
+              "heading_level": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "heading_level"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "enum": [
+                  "attachment",
+                  "image"
+                ]
+              }
+            },
+            "required": [
+              "type"
+            ]
+          },
+          "then": {
+            "properties": {
+              "attachment_id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "attachment_id"
+            ]
+          }
+        }
+      ]
+    }
+  }
+}

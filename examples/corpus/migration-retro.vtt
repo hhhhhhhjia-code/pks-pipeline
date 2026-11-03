@@ -1,0 +1,19 @@
+WEBVTT
+
+00:00:01.000 --> 00:00:08.400
+Ana: Quick retro on the migration. What actually went wrong?
+
+00:00:08.400 --> 00:00:16.900
+Ben: We scheduled the cutover against the vendor's maintenance window instead of ours.
+
+00:00:16.900 --> 00:00:27.300
+Ben: Their window started at 02:00 UTC. Ours started at 04:00. For two hours we had no rollback path because the old cluster was already draining.
+
+00:00:27.300 --> 00:00:38.100
+Ana: So the lesson is not "test more". It is "own the window".
+
+00:00:38.100 --> 00:00:49.700
+Ben: Agreed. Next time the window comes from whoever runs the rollback, not whoever runs the target.
+
+00:00:49.700 --> 00:00:58.200
+Ana: Action: Ben writes the rollback-ownership rule into the runbook by Thursday.

@@ -1,0 +1,82 @@
+{
+  "knowledge_id": "kn_01M6GGF48JFR80MY2R4GWK0Q89",
+  "title": "Double-entry bookkeeping survived because it makes error detection local",
+  "content": "Double-entry bookkeeping survived for six centuries while other accounting systems did not because it makes error detection local: every transaction touches two accounts, so a mistake shows up as an imbalance rather than as a wrong total nobody notices.",
+  "content_form": "paraphrase",
+  "domain": [
+    "D03"
+  ],
+  "content_type": "theory",
+  "tags": [
+    "double-entry",
+    "error-detection",
+    "accounting-history"
+  ],
+  "source_refs": [
+    {
+      "source_id": "src_local_20261103_MWJEQF",
+      "document_id": "doc_local_20261103_MWJEQF_01",
+      "locator": {
+        "kind": "timestamp",
+        "timestamp_ms": 4120
+      },
+      "quote": "Today we look at why double-entry bookkeeping survived for six centuries while other accounting systems did not.",
+      "quote_hash": "sha256:e3c63d0dc4753e9f99fb643860b3b89d608361fba3582b49be7b77f1dc059fa6",
+      "note": "block blk_0000"
+    },
+    {
+      "source_id": "src_local_20261103_MWJEQF",
+      "document_id": "doc_local_20261103_MWJEQF_01",
+      "locator": {
+        "kind": "timestamp",
+        "timestamp_ms": 12480
+      },
+      "quote": "The short answer is that it makes error detection local. Every transaction touches two accounts, so a mistake shows up as an imbalance rather than as a wrong total nobody notices.",
+      "quote_hash": "sha256:ea6b29b8f6dd0771d752f2ed54ac808b343240c30c6ff6cf87df646ad6d1da53",
+      "note": "block blk_0001"
+    }
+  ],
+  "traceability": "sourced",
+  "attribution": [
+    {
+      "kind": "other_speaker",
+      "name": null,
+      "source_ref_index": 0,
+      "note": "Preserved the causal claim as the lecturer's explanation, not as an externally verified fact."
+    }
+  ],
+  "epistemic_status": "unverified_claim",
+  "confidence": 0.9,
+  "related_knowledge_ids": [],
+  "related_projects": [],
+  "language": "en",
+  "created_at": "2026-11-03T18:49:50+08:00",
+  "extracted_at": "2026-11-03T18:49:50+08:00",
+  "updated_at": null,
+  "review_status": "needs_review",
+  "review": {
+    "reviewer": null,
+    "reviewed_at": null,
+    "decision": null,
+    "required_reasons": [
+      "manual_spot_check"
+    ],
+    "note": "The lecturer states a reason for the survival of double-entry bookkeeping; kept the condition that errors surface as imbalances."
+  },
+  "dedupe_fingerprint": "sha256:44008d28102d86871081cc6f14f9787289271ae9f34bd6cccda3ea9bdfe5c225",
+  "processing_history": [
+    {
+      "step": "extract",
+      "actor_type": "model",
+      "actor_name": "deepseek-chat",
+      "actor_version": null,
+      "at": "2026-11-03T18:49:50+08:00",
+      "input_ref": "doc_local_20261103_MWJEQF_01",
+      "output_ref": "kn_01M6GGF48JFR80MY2R4GWK0Q89",
+      "result": "success",
+      "confidence": 0.9,
+      "notes": "material=knowledge_note; blocks=blk_0000,blk_0001"
+    }
+  ],
+  "schema_version": "1.0.0"
+}

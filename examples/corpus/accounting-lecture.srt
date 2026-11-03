@@ -1,0 +1,27 @@
+1
+00:00:04,120 --> 00:00:12,480
+Mara: Today we look at why double-entry bookkeeping survived for six centuries while other accounting systems did not.
+
+2
+00:00:12,480 --> 00:00:22,900
+Mara: The short answer is that it makes error detection local. Every transaction touches two accounts, so a mistake shows up as an imbalance rather than as a wrong total nobody notices.
+
+3
+00:00:22,900 --> 00:00:35,150
+Mara: That is the actual innovation. Not the two columns. The two columns are just how you enforce the invariant.
+
+4
+00:00:35,150 --> 00:00:47,600
+Tomas: Does that still hold if you only care about cash flow rather than profit?
+
+5
+00:00:47,600 --> 00:01:01,300
+Mara: It holds even more strongly, because cash flow statements are derived from the same ledger. You cannot produce one without the other staying consistent.
+
+6
+00:01:01,300 --> 00:01:14,020
+Mara: For next week, bring one example of a business where accrual accounting misleads you about the health of the company, and be ready to say exactly which line does the misleading.
+
+7
+00:01:14,020 --> 00:01:18,540
+Mara: That is all for today.

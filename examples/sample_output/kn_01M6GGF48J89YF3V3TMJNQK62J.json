@@ -1,0 +1,82 @@
+{
+  "knowledge_id": "kn_01M6GGF48J89YF3V3TMJNQK62J",
+  "title": "Local error detection holds even more strongly for cash-flow-only concerns",
+  "content": "If you only care about cash flow rather than profit, the local error-detection property holds even more strongly, because cash flow statements are derived from the same ledger; you cannot produce one without the other staying consistent.",
+  "content_form": "paraphrase",
+  "domain": [
+    "D03"
+  ],
+  "content_type": "theory",
+  "tags": [
+    "cash-flow",
+    "ledger",
+    "consistency"
+  ],
+  "source_refs": [
+    {
+      "source_id": "src_local_20261103_MWJEQF",
+      "document_id": "doc_local_20261103_MWJEQF_01",
+      "locator": {
+        "kind": "timestamp",
+        "timestamp_ms": 35150
+      },
+      "quote": "Does that still hold if you only care about cash flow rather than profit?",
+      "quote_hash": "sha256:c9f5ed45a1d1cb8bee5ecf8e7495bb67d875f4a61d797254394da9ce4fa64d4a",
+      "note": "block blk_0003"
+    },
+    {
+      "source_id": "src_local_20261103_MWJEQF",
+      "document_id": "doc_local_20261103_MWJEQF_01",
+      "locator": {
+        "kind": "timestamp",
+        "timestamp_ms": 47600
+      },
+      "quote": "It holds even more strongly, because cash flow statements are derived from the same ledger. You cannot produce one without the other staying consistent.",
+      "quote_hash": "sha256:9b2c61b6d19d9ed8b528167e28f9a54ba3c0d77a8197656fdfddfd51deefc6dd",
+      "note": "block blk_0004"
+    }
+  ],
+  "traceability": "sourced",
+  "attribution": [
+    {
+      "kind": "other_speaker",
+      "name": null,
+      "source_ref_index": 0,
+      "note": "The question in blk_0003 is preserved as the condition under which the claim is made, not restated as a fact."
+    }
+  ],
+  "epistemic_status": "unverified_claim",
+  "confidence": 0.85,
+  "related_knowledge_ids": [],
+  "related_projects": [],
+  "language": "en",
+  "created_at": "2026-11-03T18:49:50+08:00",
+  "extracted_at": "2026-11-03T18:49:50+08:00",
+  "updated_at": null,
+  "review_status": "needs_review",
+  "review": {
+    "reviewer": null,
+    "reviewed_at": null,
+    "decision": null,
+    "required_reasons": [
+      "manual_spot_check"
+    ],
+    "note": "The lecturer answers a conditional question with a strengthened claim; the condition is retained."
+  },
+  "dedupe_fingerprint": "sha256:c96e670979fc1cc67fa9ee2b241f1da1902851e2a51f636036c5f45ca7f78ef1",
+  "processing_history": [
+    {
+      "step": "extract",
+      "actor_type": "model",
+      "actor_name": "deepseek-chat",
+      "actor_version": null,
+      "at": "2026-11-03T18:49:50+08:00",
+      "input_ref": "doc_local_20261103_MWJEQF_01",
+      "output_ref": "kn_01M6GGF48J89YF3V3TMJNQK62J",
+      "result": "success",
+      "confidence": 0.85,
+      "notes": "material=knowledge_note; blocks=blk_0003,blk_0004"
+    }
+  ],
+  "schema_version": "1.0.0"
+}

@@ -1,0 +1,23 @@
+[
+  {
+    "a": "kn_01M6GGFET871J75GG2TCKE1RRZ",
+    "b": "kn_01M6GGFET8C3TPP1HNZZFGEA61",
+    "relation": "complement",
+    "confidence": 0.55,
+    "reason": "two facets of the same source, shared tags"
+  },
+  {
+    "a": "kn_01M6GGFET8M7FPRQ3BGFDP440B",
+    "b": "kn_01M6GGFET8N9G8DX74HRV6PR0V",
+    "relation": "complement",
+    "confidence": 0.55,
+    "reason": "two facets of the same source, shared tags"
+  },
+  {
+    "a": "kn_01M6GGF7NC5A5FS75VECDMZYEV",
+    "b": "kn_01M6GGF7NC5Q4QZPTWW947XBR3",
+    "relation": "complement",
+    "confidence": 0.55,
+    "reason": "two facets of the same source, shared tags"
+  }
+]

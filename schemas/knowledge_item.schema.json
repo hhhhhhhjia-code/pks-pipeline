@@ -1,0 +1,832 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.org/pks/schemas/knowledge_item.schema.v2.json",
+  "title": "Knowledge Item v2",
+  "description": "从原始资料中提取的最小知识单元。一条知识可关联多个来源；一份来源可产出多条知识。所有字段要么有真实来源，要么显式为空。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "knowledge_id",
+    "title",
+    "content",
+    "content_form",
+    "domain",
+    "content_type",
+    "source_refs",
+    "traceability",
+    "attribution",
+    "epistemic_status",
+    "confidence",
+    "created_at",
+    "extracted_at",
+    "review_status",
+    "processing_history",
+    "schema_version"
+  ],
+  "properties": {
+    "knowledge_id": {
+      "type": "string",
+      "pattern": "^kn_[0-9A-HJKMNP-TV-Z]{26}$",
+      "description": "ULID，创建时生成，此后不变。与标题、正文、分类都无关，改标题不会改 ID。"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "description": "一句话陈述，不是主题词。例：「李约瑟难题的根源是经验主义技术路径的效率上限」。允许后续修改，不影响 knowledge_id。"
+    },
+    "content": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 20000,
+      "description": "知识主体。必须自洽可读，不依赖上下文。禁止写成「如上所述」「作者认为」这类悬空引用。"
+    },
+    "content_form": {
+      "type": "string",
+      "enum": [
+        "verbatim",
+        "paraphrase",
+        "summary",
+        "extraction"
+      ],
+      "description": "verbatim=原文逐字摘录，必须配 verbatim_quotes；paraphrase=改写但忠于原意；summary=压缩；extraction=跨段归纳或结构化抽取。审计时据此判断是否可能被模型改写。"
+    },
+    "domain": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 3,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/domain_code"
+      },
+      "description": "回答「讨论什么」。多选，但最多 3 个：超过 3 个通常说明该拆分或改打标签。"
+    },
+    "content_type": {
+      "type": "string",
+      "enum": [
+        "concept",
+        "theory",
+        "fact",
+        "opinion",
+        "question",
+        "method",
+        "research",
+        "decision",
+        "plan",
+        "reflection",
+        "source",
+        "action_item",
+        "meeting_record",
+        "transcript"
+      ],
+      "description": "回答「这条是什么性质」。与 domain 正交：同一领域下可以有事实、观点、方法。"
+    },
+    "tags": {
+      "type": "array",
+      "maxItems": 12,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 40
+      },
+      "description": "自由标签，用于具体主题（如「李约瑟难题」「会计恒等式」）。标签不进分类体系，可随材料增长。"
+    },
+    "source_refs": {
+      "type": "array",
+      "maxItems": 20,
+      "items": {
+        "$ref": "#/$defs/source_ref"
+      },
+      "description": "精确溯源。可空仅当 traceability=untraceable，且必须写明原因。"
+    },
+    "traceability": {
+      "type": "string",
+      "enum": [
+        "sourced",
+        "partial",
+        "untraceable"
+      ],
+      "description": "sourced=所有断言都能定位到原文；partial=部分能；untraceable=完全无法定位（如 AI 自行归纳、来源丢失）。"
+    },
+    "attribution": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 10,
+      "items": {
+        "$ref": "#/$defs/attribution"
+      },
+      "description": "这条知识是谁说的。用户本人、其他发言者、外部作者、AI 推导必须分开，不得混为一谈。"
+    },
+    "epistemic_status": {
+      "type": "string",
+      "enum": [
+        "verified_fact",
+        "unverified_claim",
+        "opinion",
+        "hypothesis",
+        "question",
+        "decision",
+        "plan",
+        "prediction",
+        "unknown"
+      ],
+      "description": "认识论状态：内容本身有多可靠。verified_fact 需有明确核对记录，讨论中的说法默认 unverified_claim 或 opinion。"
+    },
+    "confidence": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "AI 对「提取与分类是否正确」的把握，不是内容为真的概率。内容真假看 epistemic_status。"
+    },
+    "verbatim_quotes": {
+      "type": "array",
+      "maxItems": 10,
+      "description": "原文逐字片段，用于证明 content_form=verbatim，或为 paraphrase 提供锚点。必须与原文完全一致，不得润色。",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "text",
+          "source_ref_index"
+        ],
+        "properties": {
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          },
+          "source_ref_index": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "note": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "related_knowledge_ids": {
+      "type": "array",
+      "maxItems": 30,
+      "items": {
+        "$ref": "#/$defs/knowledge_relation"
+      },
+      "description": "跨来源关联。status=candidate 表示机器提出、未经人工确认；approved 表示已审核。查询与导出时默认只信 approved。"
+    },
+    "related_projects": {
+      "type": "array",
+      "maxItems": 10,
+      "items": {
+        "$ref": "#/$defs/project_ref"
+      },
+      "description": "这条知识服务于哪个项目/产出。可空。"
+    },
+    "supersedes": {
+      "type": "array",
+      "maxItems": 10,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^kn_[0-9A-HJKMNP-TV-Z]{26}$"
+      },
+      "description": "本条知识取代了哪些旧条目。旧条目保留并标记，不删除。"
+    },
+    "language": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$",
+      "description": "知识主体语言，BCP-47。"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "条目创建时间。"
+    },
+    "extracted_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "本次提取动作的时间；重复提取会更新，created_at 不变。"
+    },
+    "updated_at": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time",
+      "description": "内容或分类最后一次变更时间。只改状态不算，状态有自己的时间戳。"
+    },
+    "review_status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "processing",
+        "needs_review",
+        "approved",
+        "rejected",
+        "failed"
+      ],
+      "description": "审核状态机，见 data_governance.md。approved 才能进入 03_Knowledge_Export。"
+    },
+    "review": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": false,
+      "description": "审核记录。approved / rejected 必须有；未审核时为 null。",
+      "properties": {
+        "reviewer": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 120
+        },
+        "reviewed_at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "decision": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "approve",
+            "reject",
+            "request_changes",
+            null
+          ]
+        },
+        "required_reasons": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "ambiguous_attribution",
+              "ambiguous_source",
+              "conflicting_sources",
+              "epistemic_downgraded",
+              "low_confidence",
+              "manual_spot_check",
+              "model_uncertain",
+              "unverified_claim"
+            ]
+          }
+        },
+        "note": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 2000
+        }
+      }
+    },
+    "dedupe_fingerprint": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^sha256:[a-f0-9]{64}$",
+      "description": "对归一化后的 content + domain + content_type 取哈希。只用于发现疑似重复，绝不据此自动合并。"
+    },
+    "processing_history": {
+      "type": "array",
+      "minItems": 1,
+      "description": "处理轨迹，按时间追加。每条要能定位到具体处理对象，便于审计与复现。",
+      "items": {
+        "$ref": "#/$defs/history_entry"
+      }
+    },
+    "schema_version": {
+      "type": "string",
+      "const": "1.0.0"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "traceability": {
+            "enum": [
+              "sourced",
+              "partial"
+            ]
+          }
+        },
+        "required": [
+          "traceability"
+        ]
+      },
+      "then": {
+        "properties": {
+          "source_refs": {
+            "minItems": 1
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "source_refs": {
+            "maxItems": 0
+          },
+          "review_status": {
+            "enum": [
+              "pending",
+              "processing",
+              "needs_review",
+              "rejected",
+              "failed"
+            ]
+          }
+        },
+        "description": "无法追溯的条目不得直接 approved。"
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "content_form": {
+            "const": "verbatim"
+          }
+        },
+        "required": [
+          "content_form"
+        ]
+      },
+      "then": {
+        "properties": {
+          "verbatim_quotes": {
+            "minItems": 1
+          }
+        },
+        "required": [
+          "verbatim_quotes"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "review_status": {
+            "enum": [
+              "approved",
+              "rejected"
+            ]
+          }
+        },
+        "required": [
+          "review_status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "review": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "review"
+        ]
+      }
+    }
+  ],
+  "$defs": {
+    "domain_code": {
+      "type": "string",
+      "enum": [
+        "D01",
+        "D02",
+        "D03",
+        "D04",
+        "D05",
+        "D06",
+        "D07",
+        "D08",
+        "D09",
+        "D10",
+        "D11"
+      ],
+      "description": "领域代码 v2.0.0：D02=哲学宗教与思想；D10=历史文化与制度；D11=社会科学与公共议题；D09=AI、知识管理与生产系统。定义见 domain_taxonomy.md v2。",
+      "x-labels": {
+        "D01": "personal cognition, values, self-knowledge, life choices",
+        "D02": "philosophy, religion, ethics, intellectual history",
+        "D03": "business, management, accounting, finance, marketing, strategy",
+        "D04": "industry, manufacturing, supply chain, international trade",
+        "D05": "language learning, writing, speaking, translation, rhetoric",
+        "D06": "career, job search, study methods, skill building",
+        "D07": "projects, products, engineering practice, tooling, systems built",
+        "D08": "daily life, arts, literature, music, aesthetics, health",
+        "D09": "AI tools, agents, automation, knowledge management, personal production systems",
+        "D10": "history, culture, institutions, cross-cultural comparison",
+        "D11": "sociology, politics, public policy, group behaviour, social norms"
+      }
+    },
+    "locator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind"
+      ],
+      "description": "与 parsed_document.schema.json 的 locator 保持一致（此处内联，避免跨文件依赖）。",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "line_range",
+            "char_range",
+            "block_index",
+            "timestamp",
+            "page",
+            "table_cell"
+          ]
+        },
+        "line_start": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "line_end": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "char_start": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "char_end": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "block_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "timestamp_ms": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "page": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "table_row": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "cell": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "line_range"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "line_start": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "line_start"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "block_index"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "block_id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "block_id"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "timestamp"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "timestamp_ms": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "timestamp_ms"
+            ]
+          }
+        }
+      ]
+    },
+    "source_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_id",
+        "document_id",
+        "locator",
+        "quote"
+      ],
+      "properties": {
+        "source_id": {
+          "type": "string",
+          "pattern": "^src_[a-z0-9_]+_[0-9]{8}_[0-9A-HJKMNP-TV-Z]{6}$"
+        },
+        "document_id": {
+          "type": "string",
+          "pattern": "^doc_[A-Za-z0-9_]+$"
+        },
+        "locator": {
+          "$ref": "#/$defs/locator"
+        },
+        "quote": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 2000,
+          "description": "定位处的原文片段，逐字。无文本可引用（如图片）时为 null。"
+        },
+        "quote_hash": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^sha256:[a-f0-9]{64}$",
+          "description": "quote 的哈希，用于校验原文未被改动。"
+        },
+        "note": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 500
+        }
+      }
+    },
+    "attribution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "user",
+            "other_speaker",
+            "external_author",
+            "ai_inference",
+            "unknown"
+          ],
+          "description": "user=本人；other_speaker=会议其他人；external_author=书/文章作者；ai_inference=模型归纳；unknown=判断不了。"
+        },
+        "name": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 120,
+          "description": "具体人名或模型名。未知为 null。"
+        },
+        "source_ref_index": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "description": "指向 source_refs 的下标，说明归属依据。"
+        },
+        "note": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 500
+        }
+      }
+    },
+    "knowledge_relation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "knowledge_id",
+        "relation",
+        "status"
+      ],
+      "properties": {
+        "knowledge_id": {
+          "type": "string",
+          "pattern": "^kn_[0-9A-HJKMNP-TV-Z]{26}$"
+        },
+        "relation": {
+          "type": "string",
+          "enum": [
+            "supports",
+            "contradicts",
+            "refines",
+            "example_of",
+            "part_of",
+            "supersedes",
+            "related"
+          ]
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "candidate",
+            "approved"
+          ]
+        },
+        "note": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 500
+        }
+      }
+    },
+    "project_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "project_id"
+      ],
+      "properties": {
+        "project_id": {
+          "type": "string",
+          "pattern": "^prj_[a-z0-9_]{2,40}$"
+        },
+        "relation": {
+          "type": "string",
+          "enum": [
+            "primary",
+            "related",
+            "output"
+          ],
+          "default": "related"
+        },
+        "note": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "history_entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "step",
+        "actor_type",
+        "at",
+        "result"
+      ],
+      "properties": {
+        "step": {
+          "type": "string",
+          "enum": [
+            "extract",
+            "classify",
+            "dedupe",
+            "link",
+            "verify",
+            "review",
+            "import",
+            "revise"
+          ]
+        },
+        "actor_type": {
+          "type": "string",
+          "enum": [
+            "rule",
+            "model",
+            "human",
+            "pipeline"
+          ]
+        },
+        "actor_name": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "模型名/规则名/人名。"
+        },
+        "actor_version": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "模型版本或规则版本，用于复现。"
+        },
+        "at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "input_ref": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "输入对象标识：source_id / document_id / knowledge_id。"
+        },
+        "output_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "result": {
+          "type": "string",
+          "enum": [
+            "success",
+            "partial",
+            "failed"
+          ]
+        },
+        "confidence": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "notes": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 1000
+        }
+      }
+    }
+  }
+}
